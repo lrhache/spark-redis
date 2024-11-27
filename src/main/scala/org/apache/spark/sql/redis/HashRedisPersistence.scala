@@ -27,9 +27,28 @@ class HashRedisPersistence extends RedisPersistence[Any] {
     pipeline.hmget(key, requiredColumns: _*)
   }
 
-  override def encodeRow(keyName: String, value: Row): Map[String, String] = {
-    val fields = value.schema.fields.map(_.name)
-    val kvMap = value.getValuesMap[Any](fields)
+  override def encodeRow(
+    keyName: String,
+    value: Row,
+    structColumnName: Option[String] = None // Optional parameter for the struct column
+  ): Map[String, String] = {
+    val kvMap: Map[String, Any] = structColumnName match {
+      case Some(structColName) =>
+        // use the struct's key-values from the specified column
+        val structValue = value.getAs[Row](structColName)
+        if (structValue != null) {
+          val structFields = structValue.schema.fields.map(_.name)
+          structValue.getValuesMap[Any](structFields)
+        } else {
+          // ff the struct is null, return an empty map
+          Map.empty[String, Any]
+        }
+      case None =>
+        // Use the row's values as before
+        val fields = value.schema.fields.map(_.name)
+        value.getValuesMap[Any](fields)
+    }
+
     kvMap
       .filter { case (_, v) =>
         // don't store null values
@@ -43,6 +62,7 @@ class HashRedisPersistence extends RedisPersistence[Any] {
         k -> String.valueOf(v)
       }
   }
+
 
   override def decodeRow(keyMap: (String, String), value: Any, schema: StructType,
                          requiredColumns: Seq[String]): Row = {

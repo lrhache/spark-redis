@@ -25,6 +25,8 @@ package object redis {
   val SqlOptionKeyColumn = "key.column"
   val SqlOptionTTL = "ttl"
 
+  val SqlOptionWriteJsonCol = "struct.col"
+
   val SqlOptionMaxPipelineSize = "max.pipeline.size"
   val SqlOptionScanCount = "scan.count"
 

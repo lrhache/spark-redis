@@ -59,6 +59,7 @@ class RedisSourceRelation(override val sqlContext: SQLContext,
   private val keyColumn = parameters.get(SqlOptionKeyColumn)
   private val keyName = keyColumn.getOrElse("_id")
   private val keysPatternOpt: Option[String] = parameters.get(SqlOptionKeysPattern)
+  private val structCol = parameters.get(SqlOptionWriteJsonCol)
   private val numPartitions = parameters.get(SqlOptionNumPartitions).map(_.toInt)
     .getOrElse(SqlOptionNumPartitionsDefault)
   private val persistenceModel = parameters.getOrDefault(SqlOptionModel, SqlOptionModelHash)
@@ -129,7 +130,7 @@ class RedisSourceRelation(override val sqlContext: SQLContext,
           val conn = node.connect()
           foreachWithPipeline(conn, keys) { (pipeline, key) =>
             val row = rowsWithKey(key)
-            val encodedRow = persistence.encodeRow(keyName, row)
+            val encodedRow = persistence.encodeRow(keyName, row, structCol)
             persistence.save(pipeline, key, encodedRow, ttl)
           }
           conn.close()
